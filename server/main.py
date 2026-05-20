@@ -25,14 +25,14 @@ async def process_message(websocket: WebSocket):
                 # for the first iteration, update all existing users 
                 # that a new user has joined
                 for user, conn in conns.items():
-                    join_payload = {"type": "user_join", "users": list(conns.keys()), "client_id": c_id}
+                    join_payload = {"type": "user_join", "users": list(conns.keys()), "last_joined": c_id}
                     await conn.send_json(join_payload)
                 isUpdate = False
             
             try:
                 incoming_raw = await websocket.receive_text() # await until msg is sent over ws
                 if incoming_raw == '\n': 
-                    # websocat sends extra new line for every incomingmessage
+                    # websocat sends extra new line for every incoming message
                     continue
                 incoming = json.loads(incoming_raw.strip())
             except json.JSONDecodeError:

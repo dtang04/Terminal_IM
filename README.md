@@ -1,6 +1,6 @@
-# Simple IM
+# TerminalIM
 
-A simple IM platform.
+A simple IM platform based in Terminal.
 
 To test:
 
@@ -12,17 +12,21 @@ Startup:
 uvicorn server.main:app --reload
 ```
 
-Test ws connections with websocat:
+To test:
 
-Create clients:
-
+Server:
 ```
-websocat ws://localhost:8000/messages
-```
-
-Send messages from one client to another:
-
-```
-{"to": "<other_client_id>", "ts": ts , "msg": msg}
+uvicorn server.main:app --reload
 ```
 
+Client 1: 
+```
+python client/main.py
+```
+
+Client 2:
+```
+python client/main.py
+```
+
+More clients can be created, but each client must confirm with a recipient first before sending IMs.
