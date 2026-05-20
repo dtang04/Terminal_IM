@@ -31,9 +31,6 @@ async def process_message(websocket: WebSocket):
             
             try:
                 incoming_raw = await websocket.receive_text() # await until msg is sent over ws
-                if incoming_raw == '\n': 
-                    # websocat sends extra new line for every incoming message
-                    continue
                 incoming = json.loads(incoming_raw.strip())
             except json.JSONDecodeError:
                 err_payload = {"type": "Error", "text": "input can't be parsed into JSON"}
