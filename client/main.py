@@ -9,9 +9,10 @@ WS_URI = "ws://localhost:8000/messages"
 HTTP_URI = "http://localhost:8000"
 
 users = []
-me = None
-myUsername = None
-to = None
+me = None # this client's id
+myUsername = None # this client's username
+to = None # recipient's username
+to_id = None # recipient's id
 
 async def receive(websocket):
     global users, me
@@ -39,7 +40,7 @@ async def send(websocket):
         await websocket.send(json.dumps(payload))
 
 async def main():
-    global me, myUsername, to, WS_URI
+    global me, myUsername, to, to_id, WS_URI
 
     # Register user name serverside
     myUsername = input("Username: ")
@@ -78,11 +79,24 @@ async def main():
                 elif recipient == myUsername:
                     print("Recipient can't be yourself")
                 else:
-                    to = recipient # recipient username
+                    to = recipient
+                    resp = requests.get(HTTP_URI + f"/id/{to}")
+                    if resp.status_code == 200:
+                        resp = resp.json()
+                        to_id = resp["r_id"] # populate recipient's id
                     validRecipient = True
                     break
             
             if validRecipient:
+                # if valid recipient, get the history
+                resp = requests.get(HTTP_URI + f"/history?user_id={me}&recipient_id={to_id}")
+
+                if resp.status_code == 200:
+                    resp = resp.json()
+                    hist = resp["history"]
+                    for text in hist:
+                        print(f"[From: {text['from']} @ {text['ts']}] {text['msg']}")
+
                 break
 
         await asyncio.gather(receive(ws), send(ws))

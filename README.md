@@ -29,5 +29,10 @@ Client 2:
 python client/main.py
 ```
 
+Redis with homebrew:
+```
+brew services start redis
+```
+
 More clients can be created, but each client must confirm with a recipient first and set their username before sending IMs.
 
