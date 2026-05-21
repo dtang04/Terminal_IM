@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 import uuid
 import json
 
-from models import Username
+from server.models import Username
 
 conns = {}
 
@@ -43,7 +43,7 @@ async def process_message(websocket: WebSocket, c_id: str):
                 # that a new user has joined
                 for user, conn in conns.items():
                     if conn is not None:
-                        join_payload = {"type": "user_join", "users": list(usernames_to_uuid.keys()), "last_joined": c_id}
+                        join_payload = {"type": "user_join", "users": list(usernames_to_uuid.keys())}
                         await conn.send_json(join_payload)
                 isUpdate = False
             
@@ -58,7 +58,6 @@ async def process_message(websocket: WebSocket, c_id: str):
             sender = c_id
             receiver_name = incoming["to"]
             
-
             ts = incoming["ts"]
             msg = incoming["msg"]
 
