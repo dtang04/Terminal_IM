@@ -1,9 +1,9 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
+from server.models import Username
+import redis
 import uuid
 import json
-
-from server.models import Username
 
 conns = {}
 
@@ -12,11 +12,34 @@ usernames_to_uuid = {}
 
 app = FastAPI()
 
+store = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
+
 @app.get("/id")
 def retrieve_id():
     c_id = str(uuid.uuid4())
     conns[c_id] = None
     return JSONResponse({"status": "success", "c_id": c_id}, status_code=200)
+
+@app.get("/id/{recipient}")
+def retrieve_recipient_id(recipient: str):
+    try:
+        r_id = usernames_to_uuid[recipient]
+        return JSONResponse({"status": "success", "r_id": r_id}, status_code=200)
+    except KeyError:
+        return JSONResponse({"status": "fail"}, status_code=404)
+
+@app.get("/history")
+def msg_history(user_id: str, recipient_id: str):
+    raw_messages = store.lrange(f"{min(user_id, recipient_id)}_{max(user_id, recipient_id)}", 0, -1) # key, start, stop
+                                                                                                     # if key does not exist, lrange returns []
+    
+    parsed_messages = []
+    for r_message in raw_messages:
+        r_message = json.loads(r_message)
+        c_msg = {"ts": r_message["ts"], "msg": r_message["msg"]}
+        parsed_messages.append(c_msg)
+
+    return JSONResponse({"status": "success", "history": parsed_messages}, status_code=200)
 
 @app.post("/username")
 def fill_username(uname: Username):
@@ -31,7 +54,7 @@ async def process_message(websocket: WebSocket, c_id: str):
     """
     await websocket.accept()
     
-    conns[c_id] = websocket # register the ws connection with the c_Id
+    conns[c_id] = websocket # register the ws connection with the c_id
     username = None
 
     isUpdate = True
@@ -76,6 +99,10 @@ async def process_message(websocket: WebSocket, c_id: str):
                 continue
 
             msg_payload = {"type": "chat", "from": username, "to": receiver_name, "ts": ts, "msg": msg}
+
+            # Save to redis
+            redis_key = f"{min(c_id, receiver_id)}_{max(c_id, receiver_id)}" # use min-max to ensure idempotency of key
+            store.rpush(redis_key, json.dumps(msg_payload))
 
             await ws_r.send_json(msg_payload) # send on receiver's ws
 
