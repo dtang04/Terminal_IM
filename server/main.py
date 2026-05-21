@@ -36,8 +36,7 @@ def msg_history(user_id: str, recipient_id: str):
     parsed_messages = []
     for r_message in raw_messages:
         r_message = json.loads(r_message)
-        c_msg = {"ts": r_message["ts"], "msg": r_message["msg"]}
-        parsed_messages.append(c_msg)
+        parsed_messages.append(r_message)
 
     return JSONResponse({"status": "success", "history": parsed_messages}, status_code=200)
 
