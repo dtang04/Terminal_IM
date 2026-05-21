@@ -29,5 +29,5 @@ Client 2:
 python client/main.py
 ```
 
-More clients can be created, but each client must confirm with a recipient first before sending IMs.
+More clients can be created, but each client must confirm with a recipient first and set their username before sending IMs.
 
