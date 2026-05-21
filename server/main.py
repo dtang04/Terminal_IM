@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 import uuid
 import json
 
-from models import Username
+from server.models import Username
 
 conns = {}
 
@@ -58,7 +58,6 @@ async def process_message(websocket: WebSocket, c_id: str):
             sender = c_id
             receiver_name = incoming["to"]
             
-
             ts = incoming["ts"]
             msg = incoming["msg"]
 

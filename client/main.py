@@ -1,14 +1,16 @@
 import websockets
 import asyncio
 import sys
-
+import requests
 import json
 from datetime import datetime
 
-URI = "ws://localhost:8000/messages"
+WS_URI = "ws://localhost:8000/messages"
+HTTP_URI = "http://localhost:8000"
 
 users = []
 me = None
+myUsername = None
 to = None
 
 async def receive(websocket):
@@ -26,7 +28,6 @@ async def receive(websocket):
         
         if incoming["type"] == "user_join":
             users = incoming["users"] # update the user map global
-            me = incoming["client_id"]
 
 async def send(websocket):
     event_loop = asyncio.get_running_loop() # prevent the event handler from blocking on stdin
@@ -38,20 +39,32 @@ async def send(websocket):
         await websocket.send(json.dumps(payload))
 
 async def main():
-    global me, to
-    async with websockets.connect(URI) as ws:
+    global me, myUsername, to, WS_URI
+
+    # Register user name serverside
+    myUsername = input("Username: ")
+
+    # Gets the client id from server
+    resp_id = requests.get(HTTP_URI + "/id")
+    resp_id = resp_id.json() 
+    me = resp_id["c_id"]
+
+    resp_username = requests.post(HTTP_URI + "/username", json={"username": myUsername, "userid": me})
+
+    # resolve the websocket URI
+    WS_URI = WS_URI + "/" + me
+
+    async with websockets.connect(WS_URI) as ws:
         # At startup, get the users
         while True:
+            # Wait for user map from server
             incoming_raw = await ws.recv()
             incoming = json.loads(incoming_raw)
 
             users = incoming["users"]
 
-            if me is None:
-                me = incoming["last_joined"]
-
             # One time population of recipient
-            other_users = [user for user in users if user != me]
+            other_users = [user for user in users if user != myUsername]
             print("Current users: ", other_users)
 
             if len(other_users) == 0:
@@ -62,10 +75,10 @@ async def main():
                 recipient = input("Pick a user to message ")
                 if recipient not in users:
                     print("Recipient not found")
-                elif recipient == me:
+                elif recipient == myUsername:
                     print("Recipient can't be yourself")
                 else:
-                    to = recipient
+                    to = recipient # recipient username
                     validRecipient = True
                     break
             
