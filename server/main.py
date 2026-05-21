@@ -66,7 +66,6 @@ async def process_message(websocket: WebSocket, c_id: str):
             except KeyError:
                 continue # username = None
 
-
             try:
                 receiver_id = usernames_to_uuid[receiver_name] # receiver_name -> receiver_id
                 ws_r = conns[receiver_id] # dial the receiver ws connection with receiver_id
