@@ -1,4 +1,4 @@
-# TerminalIM
+# Terminal Instant Messenger
 
 A simple IM platform based in Terminal, and a side project to practice WebSocket connections and `async` event loop management.
 
