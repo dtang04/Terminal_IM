@@ -36,6 +36,22 @@ async def send(websocket):
         msg_to_send = await event_loop.run_in_executor(None, sys.stdin.readline)
         msg_to_send = msg_to_send.strip()
 
+        if msg_to_send.startswith("/upload "):
+            filepath = msg_to_send[8:]
+
+            try:
+                file = open(filepath, "rb")
+            except FileNotFoundError:
+                print("File not found")
+                continue
+            
+            resp = await event_loop.run_in_executor(None, lambda: requests.post(HTTP_URI + "/upload", files={"file": file})) # use lambda with run_in_executor when blocking func has args
+            file.close()
+
+            resp = resp.json()
+                                                                                                    # use files= to send files
+            msg_to_send = resp["url"] # update msg_to_send with the s3 presigned url
+            
         payload = {"type": "chat", "to": to, "msg": msg_to_send, "ts": str(datetime.now())}
         await websocket.send(json.dumps(payload))
 

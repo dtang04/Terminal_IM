@@ -57,7 +57,10 @@ def fill_username(uname: Username):
 @app.post("/upload")
 async def upload_file(file: UploadFile):
     key = f"uploads/{file.filename}"
-    s3.upload_fileobj(file.file, aws_bucket, key, ExtraArgs={"ContentType": file.content_type})
+    if file.content_type != None:
+        s3.upload_fileobj(file.file, aws_bucket, key, ExtraArgs={"ContentType": file.content_type})
+    else:
+        s3.upload_fileobj(file.file, aws_bucket, key, ExtraArgs={"ContentType": "application/octet-stream"}) # application/octet-stream is generic data
     url = s3.generate_presigned_url("get_object", Params={"Bucket": aws_bucket, "Key": key}, ExpiresIn=3600)
     return JSONResponse({"status": "success", "url": url}, status_code=200)
 
