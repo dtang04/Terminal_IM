@@ -94,7 +94,7 @@ async def main():
     # resolve the websocket URI
     WS_URI = WS_URI + "/" + me
 
-    async with websockets.connect(WS_URI) as ws:
+    async with websockets.connect(WS_URI, ping_timeout=None) as ws:
         # At startup, get the users
         while True:
             # Wait for user map from server
