@@ -29,8 +29,8 @@ def retrieve_recipient_id(recipient: str):
         return JSONResponse({"status": "fail"}, status_code=404)
 
 @app.get("/history")
-def msg_history(user_id: str, recipient_id: str):
-    raw_messages = store.lrange(f"{min(user_id, recipient_id)}_{max(user_id, recipient_id)}", 0, -1) # key, start, stop
+def msg_history(username: str, recipient_name: str):
+    raw_messages = store.lrange(f"{min(username, recipient_name)}_{max(username, recipient_name)}", 0, -1) # key, start, stop
                                                                                                      # if key does not exist, lrange returns []
     
     parsed_messages = []
@@ -100,7 +100,7 @@ async def process_message(websocket: WebSocket, c_id: str):
             msg_payload = {"type": "chat", "from": username, "to": receiver_name, "ts": ts, "msg": msg}
 
             # Save to redis
-            redis_key = f"{min(c_id, receiver_id)}_{max(c_id, receiver_id)}" # use min-max to ensure idempotency of key
+            redis_key = f"{min(username, receiver_name)}_{max(username, receiver_name)}" # use min-max to ensure idempotency of key
             store.rpush(redis_key, json.dumps(msg_payload))
 
             await ws_r.send_json(msg_payload) # send on receiver's ws
