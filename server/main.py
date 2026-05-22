@@ -24,12 +24,18 @@ store = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
 
 @app.get("/id")
 def retrieve_id():
+    """
+    Generates a uuid and returns it to the client.
+    """
     c_id = str(uuid.uuid4())
     conns[c_id] = None
     return JSONResponse({"status": "success", "c_id": c_id}, status_code=200)
 
 @app.get("/id/{recipient}")
 def retrieve_recipient_id(recipient: str):
+    """
+    Finds the recipient uuid, given a username. 
+    """
     try:
         r_id = usernames_to_uuid[recipient]
         return JSONResponse({"status": "success", "r_id": r_id}, status_code=200)
@@ -38,6 +44,9 @@ def retrieve_recipient_id(recipient: str):
 
 @app.get("/history")
 def msg_history(username: str, recipient_name: str):
+    """
+    Given the username and recipient name, queries the redis kv store and returns the messages from oldest to newest.
+    """
     raw_messages = store.lrange(f"{min(username, recipient_name)}_{max(username, recipient_name)}", 0, -1) # key, start, stop
                                                                                                      # if key does not exist, lrange returns []
     
@@ -50,12 +59,18 @@ def msg_history(username: str, recipient_name: str):
 
 @app.post("/username")
 def fill_username(uname: Username):
+    """
+    Updates uuid_to_usernames and usernames_to_uuid
+    """
     uuid_to_usernames[uname.userid] = uname.username # for identifying sender
     usernames_to_uuid[uname.username] = uname.userid # for identifying receiver
     return JSONResponse({"status": "success"}, status_code=200)
 
 @app.post("/upload")
 async def upload_file(file: UploadFile):
+    """
+    Takes in a UploadFile file, and uploads to s3 using a boto3 client.
+    """
     key = f"uploads/{file.filename}"
     if file.content_type != None:
         s3.upload_fileobj(file.file, aws_bucket, key, ExtraArgs={"ContentType": file.content_type})
