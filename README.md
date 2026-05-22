@@ -29,7 +29,7 @@ Client 2:
 python client/main.py
 ```
 
-Redis with homebrew:
+Redis KV store with homebrew:
 ```
 brew services start redis
 ```
