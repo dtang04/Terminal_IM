@@ -36,3 +36,5 @@ brew services start redis
 
 More clients can be created, but each client must confirm with a recipient first and set their username before sending IMs.
 
+`boto3` is used to establish a client that connects to AWS. It reads credentials at `~/.aws/credentials`, and reads `S3_BUCKET` from .env.
+
