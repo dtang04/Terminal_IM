@@ -89,7 +89,7 @@ async def main():
             
             if validRecipient:
                 # if valid recipient, get the history
-                resp = requests.get(HTTP_URI + f"/history?user_id={me}&recipient_id={to_id}")
+                resp = requests.get(HTTP_URI + f"/history?username={myUsername}&recipient_name={to}")
 
                 if resp.status_code == 200:
                     resp = resp.json()
