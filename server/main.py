@@ -1,16 +1,24 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile
 from fastapi.responses import JSONResponse
 from server.models import Username
+from dotenv import load_dotenv
+import os
 import redis
 import uuid
 import json
+import boto3
+from botocore.config import Config
 
 conns = {}
 
 uuid_to_usernames = {}
 usernames_to_uuid = {}
 
+load_dotenv()
+aws_bucket = os.getenv("S3_BUCKET")
+
 app = FastAPI()
+s3 = boto3.client("s3", config=Config(signature_version="s3v4"), region_name="us-east-2", endpoint_url="https://s3.us-east-2.amazonaws.com") # boto3 loads AWS_ACCESS_KEY_ID, AWS_REGION, AWS_SECRET_ACCESS_KEY by default
 
 store = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
 
@@ -45,6 +53,13 @@ def fill_username(uname: Username):
     uuid_to_usernames[uname.userid] = uname.username # for identifying sender
     usernames_to_uuid[uname.username] = uname.userid # for identifying receiver
     return JSONResponse({"status": "success"}, status_code=200)
+
+@app.post("/upload")
+async def upload_file(file: UploadFile):
+    key = f"uploads/{file.filename}"
+    s3.upload_fileobj(file.file, aws_bucket, key, ExtraArgs={"ContentType": file.content_type})
+    url = s3.generate_presigned_url("get_object", Params={"Bucket": aws_bucket, "Key": key}, ExpiresIn=3600)
+    return JSONResponse({"status": "success", "url": url}, status_code=200)
 
 @app.websocket("/messages/{c_id}")
 async def process_message(websocket: WebSocket, c_id: str):
