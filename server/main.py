@@ -67,17 +67,17 @@ def fill_username(uname: Username):
     return JSONResponse({"status": "success"}, status_code=200)
 
 @app.post("/upload")
-async def upload_file(file: UploadFile):
+async def upload_file(filename: str):
     """
-    Takes in a UploadFile file, and uploads to s3 using a boto3 client.
+    Given a filename, allocate the upload slot in S3, and returned the presigned
+    put URL and get URL.
     """
-    key = f"uploads/{file.filename}"
-    if file.content_type != None:
-        s3.upload_fileobj(file.file, aws_bucket, key, ExtraArgs={"ContentType": file.content_type})
-    else:
-        s3.upload_fileobj(file.file, aws_bucket, key, ExtraArgs={"ContentType": "application/octet-stream"}) # application/octet-stream is generic data
-    url = s3.generate_presigned_url("get_object", Params={"Bucket": aws_bucket, "Key": key}, ExpiresIn=3600)
-    return JSONResponse({"status": "success", "url": url}, status_code=200)
+    key = f"uploads/{filename}"
+    
+    # Server provides client with presigned url, client uploads themselves
+    put_url = s3.generate_presigned_url("put_object", Params={"Bucket": aws_bucket, "Key": key}, ExpiresIn=3600)
+    get_url = s3.generate_presigned_url("get_object", Params={"Bucket": aws_bucket, "Key": key}, ExpiresIn=86400)
+    return JSONResponse({"status": "success", "put_url": put_url, "get_url": get_url}, status_code=200)
 
 @app.websocket("/messages/{c_id}")
 async def process_message(websocket: WebSocket, c_id: str):

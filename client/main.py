@@ -56,13 +56,21 @@ async def send(websocket):
                 print("File not found")
                 continue
             
-            resp = await event_loop.run_in_executor(None, lambda: requests.post(HTTP_URI + "/upload", files={"file": file})) # use lambda with run_in_executor when blocking func has args
+            resp = await event_loop.run_in_executor(None, lambda: requests.post(HTTP_URI + f"/upload?filename={file.name.split('/')[-1]}")) # use lambda with run_in_executor when blocking func has args
+                                                                                                                                            # filename.split("/")[-1] gets the filename from the full dir
+            resp = resp.json()
+                                                                                                   
+            presigned_url_PUT = resp["put_url"]
+            presigned_url_GET = resp["get_url"]
+
+            await event_loop.run_in_executor(None, lambda: requests.put(presigned_url_PUT, data=file, headers={"Content-Type": "application/octet-stream"})) # upload to S3's presigned url client-side
+                                                                                                                                                         # application/octet-stream is generic data
             file.close()
 
-            resp = resp.json()
-                                                                                                    # use files= to send files
-            msg_to_send = resp["url"] # update msg_to_send with the s3 presigned url
-            
+            payload_upload = {"type": "chat", "to": to, "msg": presigned_url_GET, "ts": str(datetime.now())}
+            await websocket.send(json.dumps(payload_upload))
+            continue
+
         payload = {"type": "chat", "to": to, "msg": msg_to_send, "ts": str(datetime.now())}
         await websocket.send(json.dumps(payload))
 
