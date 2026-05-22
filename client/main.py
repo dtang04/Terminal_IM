@@ -15,6 +15,9 @@ to = None # recipient's username
 to_id = None # recipient's id
 
 async def receive(websocket):
+    """
+    Async function that reads from a websocket connection.
+    """
     global users, me
     while True:
         incoming_raw = await websocket.recv()
@@ -31,6 +34,14 @@ async def receive(websocket):
             users = incoming["users"] # update the user map global
 
 async def send(websocket):
+    """
+    Async function that reads from a websocket. 
+
+    Blocking calls such as stdin.readline and POST /upload are run in separate
+    executor threads to prevent blocking the event loop.
+
+    /upload <filepath> opens the file at the filepath, and sends it via POST /upload.
+    """
     event_loop = asyncio.get_running_loop() # prevent the event handler from blocking on stdin
     while True:
         msg_to_send = await event_loop.run_in_executor(None, sys.stdin.readline)
@@ -56,6 +67,10 @@ async def send(websocket):
         await websocket.send(json.dumps(payload))
 
 async def main():
+    """
+    Performs synchronous setup (username, recipient population, history display), dials the
+    websocket, then begins the async functions (receive, send)
+    """
     global me, myUsername, to, to_id, WS_URI
 
     # Register user name serverside
