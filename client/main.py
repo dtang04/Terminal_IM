@@ -4,6 +4,7 @@ import sys
 import requests
 import json
 from datetime import datetime
+from helpers import getHistory
 
 WS_URI = "ws://localhost:8000/messages"
 HTTP_URI = "http://localhost:8000"
@@ -47,8 +48,8 @@ async def send(websocket):
         msg_to_send = await event_loop.run_in_executor(None, sys.stdin.readline)
         msg_to_send = msg_to_send.strip()
 
-        if msg_to_send.startswith("/upload "):
-            filepath = msg_to_send[8:]
+        if msg_to_send.startswith("/upload"):
+            filepath = msg_to_send[8:] # assume format is "/upload <filename.txt>""
 
             try:
                 file = open(filepath, "rb")
@@ -69,6 +70,10 @@ async def send(websocket):
 
             payload_upload = {"type": "chat", "to": to, "msg": presigned_url_GET, "ts": str(datetime.now())}
             await websocket.send(json.dumps(payload_upload))
+            continue
+        
+        if msg_to_send.startswith("/history"):
+            await event_loop.run_in_executor(None, lambda: getHistory(myUsername, to))
             continue
 
         payload = {"type": "chat", "to": to, "msg": msg_to_send, "ts": str(datetime.now())}
@@ -128,14 +133,7 @@ async def main():
             
             if validRecipient:
                 # if valid recipient, get the history
-                resp = requests.get(HTTP_URI + f"/history?username={myUsername}&recipient_name={to}")
-
-                if resp.status_code == 200:
-                    resp = resp.json()
-                    hist = resp["history"]
-                    for text in hist:
-                        print(f"[From: {text['from']} @ {text['ts']}] {text['msg']}")
-
+                getHistory(myUsername, to)
                 break
 
         await asyncio.gather(receive(ws), send(ws))
