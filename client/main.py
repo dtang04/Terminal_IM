@@ -4,7 +4,9 @@ import sys
 import requests
 import json
 from datetime import datetime
-from helpers import getHistory
+
+from helpers import getHistory, getRecipientID, generate_id, registerUsername
+from errors import IDCreationError, GetHistoryError, RegisterUsernameError, RecipientIDError
 
 WS_URI = "ws://localhost:8000/messages"
 HTTP_URI = "http://localhost:8000"
@@ -73,7 +75,11 @@ async def send(websocket):
             continue
         
         if msg_to_send.startswith("/history"):
-            await event_loop.run_in_executor(None, lambda: getHistory(myUsername, to))
+            try:
+                await event_loop.run_in_executor(None, lambda: getHistory(myUsername, to))
+            except GetHistoryError:
+                print("Error in history retrieval")
+
             continue
 
         payload = {"type": "chat", "to": to, "msg": msg_to_send, "ts": str(datetime.now())}
@@ -86,15 +92,21 @@ async def main():
     """
     global me, myUsername, to, to_id, WS_URI
 
-    # Register user name serverside
     myUsername = input("Username: ")
 
     # Gets the client id from server
-    resp_id = requests.get(HTTP_URI + "/id")
-    resp_id = resp_id.json() 
-    me = resp_id["c_id"]
+    try:
+        me = generate_id()
+    except IDCreationError:
+        print("Error in ID generation")
+        return
 
-    resp_username = requests.post(HTTP_URI + "/username", json={"username": myUsername, "userid": me})
+    # Register the user name serverside
+    try:
+        registerUsername(myUsername, me)
+    except RegisterUsernameError:
+        print("Username registration failed")
+        return
 
     # resolve the websocket URI
     WS_URI = WS_URI + "/" + me
@@ -124,16 +136,21 @@ async def main():
                     print("Recipient can't be yourself")
                 else:
                     to = recipient
-                    resp = requests.get(HTTP_URI + f"/id/{to}")
-                    if resp.status_code == 200:
-                        resp = resp.json()
-                        to_id = resp["r_id"] # populate recipient's id
-                    validRecipient = True
+                    try:
+                        to_id = getRecipientID(to)
+                        validRecipient = True
+                    except RecipientIDError:
+                        print("Recipient not found on server")
+                        continue
                     break
             
             if validRecipient:
                 # if valid recipient, get the history
-                getHistory(myUsername, to)
+                try:
+                    getHistory(myUsername, to)
+                except GetHistoryError:
+                    print("Error in history retrieval")
+
                 break
 
         await asyncio.gather(receive(ws), send(ws))
